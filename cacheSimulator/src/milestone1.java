@@ -1,4 +1,3 @@
-package cacheSimulator;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileReader;
@@ -37,7 +36,7 @@ public class milestone1 {
 				i++;
 			}
 		}
-		System.out.println("Cache Simulator - CS 3853 Fall 2023 - Group#14\n");
+		System.out.println("Cache Simulator - CS 3853 Fall 2023 - Group#2\n");
 		if(trace_file[0] != null) {
 			trace1(trace_file[0],cache_size,block_size,associativity,replacement_policy,memory_size);
 		}
