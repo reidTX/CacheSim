@@ -5,6 +5,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.HashMap;
 public class milestone1 {
 	public static void main(String[] args) {
 		String[] trace_file = new String[3];
@@ -97,12 +98,12 @@ public class milestone1 {
 		if(trace_file[0] != null) {
 			processTrace(trace_file[0],cache_size,block_size,associativity,replacement_policy,memory_size,percent_memory_used,instructions_per_time_slice,traceLen);
 		}
-		/*if(trace_file[1] != null) {
+		if(trace_file[1] != null) {
 			processTrace(trace_file[1],cache_size,block_size,associativity,replacement_policy,memory_size,percent_memory_used,instructions_per_time_slice,traceLen);
 		}
 		if(trace_file[2] != null) {
 			processTrace(trace_file[2],cache_size,block_size,associativity,replacement_policy,memory_size,percent_memory_used,instructions_per_time_slice,traceLen);
-		}*/
+		}
 	}
 		private static String formatReplacementPolicy(String replacementPolicy) {
 		switch (replacementPolicy.toLowerCase()) {
@@ -127,6 +128,13 @@ public class milestone1 {
 		double implement_memSizekb = implement_memSizeb / 1024;
 		double cost_perkb = 0.15;
 		double cost = Math.round((implement_memSizekb * cost_perkb)*100.0)/100.0;
+        int hits = 0;
+        int misses = 0;
+        int compulsoryMisses = 0;
+        int conflictMisses = 0;
+        HashMap<Integer, String> cache = new HashMap<>();
+        int[] hitMiss = {0, 0};
+        fileRead(trace_file,block_size,rows_num,cache,hitMiss, new HashMap<>());
 		System.out.println("***** Cache Calculated Values *****\n");
 		System.out.println("Total # Blocks: \t\t"+total_block);
 		System.out.println("Tag Size: \t\t\t"+tag_size+" bits");
@@ -144,29 +152,49 @@ public class milestone1 {
 		System.out.println("Number of Pages for System: \t" + system_pages);
 		System.out.println("Size of Page Table Entry: \t" + entry_bits + " bits");
 		System.out.println("Total RAM for Page Table(s): \t" + total_ram + " bytes\n");
+		System.out.println("\n***** CACHE SIMULATION RESULTS *****\n");
+		System.out.println("Cache Hits: \t" + hitMiss[0]);
+		System.out.println("Cache Misses: \t" + hitMiss[1]);
+        System.out.println("--- Compulsory Misses: \t" + compulsoryMisses);
+		System.out.println("--- Conflict Misses \t" + conflictMisses);
 	}
-	public static int fileRead(String fileName) {
-		try {
-			BufferedReader br = new BufferedReader(new FileReader(fileName));
-			int i=0;
+	public static int fileRead(String trace_file, int block_size, int rows, HashMap<Integer, String> cache, int[] hitMiss, HashMap<Integer,Integer> accessHistory) {
+		    int hits = 0;
+            int misses = 0;
+            int compulsoryMisses = 0;
+            int conflictMisses = 0;
+        try {
+			BufferedReader br = new BufferedReader(new FileReader(trace_file));
             String line;
             Pattern pattern = Pattern.compile("EIP \\((\\d+)\\): ([0-9a-fA-F]+)");
             while ((line = br.readLine()) != null) {
                 Matcher matcher = pattern.matcher(line);
                 if (matcher.find()) {
-                    String length = "000"+matcher.group(1);
                     String hexValue = matcher.group(2);
-                    System.out.println("0x" + hexValue+":("+length+")");
-                    i++;
-                    if(i==20) {
-                    	return 1;
-                    }
+                    long address = Long.parseLong(hexValue,16);
+
+                    int index = (int) ((address / block_size) % rows);
+                    String tag = Long.toHexString(address / (block_size * rows));
+                if (!accessHistory.containsKey(index)) {
+                    compulsoryMisses++;
+                    misses++;
+                    cache.put(index, tag);
+                    accessHistory.put(index, 1); 
+                } else if (cache.containsKey(index) && !cache.get(index).equals(tag)) {
+                    conflictMisses++;
+                    misses++;
+                    cache.put(index, tag);
+                } else {
+                    hits++;
+                }
                 }
             }
             br.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
-		return 0;
+		hitMiss[0] = hits;
+        hitMiss[1] = misses;
+        return hits+misses+compulsoryMisses+conflictMisses;
     }
 }
